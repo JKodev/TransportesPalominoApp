@@ -34,7 +34,7 @@ Message::Message()
     QString str_settings;
     QFile file;
 
-    file.setFileName( "settings.json" );
+    file.setFileName( "../settings.json" );
     file.open( QIODevice::ReadOnly | QIODevice::Text );
 
     str_settings = file.readAll();

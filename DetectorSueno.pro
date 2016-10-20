@@ -29,3 +29,6 @@ HEADERS += \
     system.h \
     message.h \
     gps.h
+
+DISTFILES += \
+    settings.json
