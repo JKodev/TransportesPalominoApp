@@ -28,15 +28,15 @@ System::System()
     gps = new GPS();
 
 
-    face_cascade_name = "/usr/share/opencv/haarcascades/haarcascade_frontalface_alt.xml";
-    lips_cascade_name = "/home/kodev/Universidad/Proyecto/FaceRec/Mouth2.xml";
+    face_cascade_name = "../haar/haarcascade_frontalface_alt.xml";
+    lips_cascade_name = "../haar/Mouth2.xml";
     main_window_name = "Captura - Detección de Rostro";
     face_window_name = "Captura - Rostro";
     lips_windows_name = "Corte solo de boca";
     rng = RNG(12345);
 
     skinCrCbHist = Mat::zeros(Size(256, 256), CV_8UC1);
-    audio_file = "/home/kodev/Música/nautical022.mp3";
+    audio_file = "../media/nautical022.mp3";
 
     eye_center = new EyeCenter();
     eye_corner = new EyeCorner();
