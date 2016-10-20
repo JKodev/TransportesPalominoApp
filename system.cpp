@@ -1,4 +1,5 @@
 #include "system.h"
+#include <QCoreApplication>
 
 bool System::analizer(QVector<bool> va)
 {
@@ -22,6 +23,19 @@ bool System::analizer(QVector<bool> va)
     return count_t < count_f;
 }
 
+QString System::getMediaPath()
+{
+    QString execute_path = QCoreApplication::applicationDirPath();
+
+    QStringList separate_path = execute_path.split('/');
+
+    separate_path.pop_back();
+
+    QString path = separate_path.join('/') + QString("/media/");
+
+    return path;
+}
+
 System::System()
 {
     sms = new Message();
@@ -36,13 +50,19 @@ System::System()
     rng = RNG(12345);
 
     skinCrCbHist = Mat::zeros(Size(256, 256), CV_8UC1);
-    audio_file = "../media/nautical022.mp3";
+    //audio_file = "/../media/nautical022.mp3";
+    QString media_path = this->getMediaPath();
+    audio_file = media_path + "nautical022.mp3";
 
     eye_center = new EyeCenter();
     eye_corner = new EyeCorner();
     player = new QMediaPlayer;
     player->setMedia(QUrl::fromLocalFile(audio_file));
     player->setVolume(50);
+
+    //cout << QString(QCoreApplication::applicationDirPath()).toStdString() << endl;
+    //cout << QString(QCoreApplication::applicationFilePath()).toStdString() << endl;
+    //cout << QString(this->getMediaPath()).toStdString() << endl;
 
 }
 

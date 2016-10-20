@@ -56,6 +56,7 @@ private:
     Message *sms;
     GPS *gps;
 
+    QString getMediaPath();
 public:
     System();
     ~System();
