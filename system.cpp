@@ -3,7 +3,7 @@
 
 bool System::analizer(QVector<bool> va)
 {
-    if (va.size() < 20)
+    if (va.size() < this->FPS)
         return true;
     int count_t = 0;
     int count_f = 0;
@@ -52,7 +52,7 @@ System::System()
     skinCrCbHist = Mat::zeros(Size(256, 256), CV_8UC1);
     //audio_file = "/../media/nautical022.mp3";
     QString media_path = this->getMediaPath();
-    audio_file = media_path + "nautical022.mp3";
+    audio_file = media_path + "008522530_prev.mp3";
 
     eye_center = new EyeCenter();
     eye_corner = new EyeCorner();
@@ -101,6 +101,9 @@ int System::init()
             43.0, 0.0, 360.0, Scalar(255, 255, 255), -1);
 
     VideoCapture capture(-1);
+    this->FPS = capture.get(CV_CAP_PROP_FPS);
+
+    cout << "FPS: " << this->FPS << endl;
     if( capture.isOpened() ) {
         while( true ) {
             capture.read(frame);
@@ -160,7 +163,9 @@ void System::findEyes(Mat frame_gray, Rect face)
 
     //-- Find Eye Centers
     Point leftPupil = eye_center->findEyeCenter(faceROI,leftEyeRegion,"Ojo izquierdo");
-    if (leftPupil.y < 30) {
+
+    int min_eye_position = eye_region_height / 4;
+    if (leftPupil.y < min_eye_position) {
         cout << Helpers::currentDateTime() << endl;
         cout << "ERROR: No se ha encontrado la cornea izquierda.\t";
         cout << "X: " << leftPupil.x << " - Y: " << leftPupil.y << endl;
@@ -180,13 +185,13 @@ void System::findEyes(Mat frame_gray, Rect face)
             }
         }
     }
-    verify_left.append(leftPupil.y < 30);
-    if (verify_left.size() > 20) {
+    verify_left.append(leftPupil.y < min_eye_position);
+    if (verify_left.size() > this->FPS) {
         verify_left.pop_front();
     }
     //cout << leftPupil.x << " - " << leftPupil.y << endl;
     Point rightPupil = eye_center->findEyeCenter(faceROI,rightEyeRegion,"Ojo Derecho");
-    if (rightPupil.y < 30) {
+    if (rightPupil.y < min_eye_position) {
         cout << Helpers::currentDateTime() << endl;
         cout << "ERROR: No se ha encontrado la cornea derecha.\t";
         cout << "X: " << rightPupil.x << " - Y: " << rightPupil.y << endl;
@@ -206,8 +211,8 @@ void System::findEyes(Mat frame_gray, Rect face)
             }
         }
     }
-    verify_right.append(rightPupil.y < 30);
-    if (verify_right.size() > 20) {
+    verify_right.append(rightPupil.y < min_eye_position);
+    if (verify_right.size() > this->FPS) {
         verify_right.pop_front();
     }
     // get corner regions
@@ -298,7 +303,7 @@ void System::findEyes(Mat frame_gray, Rect face)
         timer_lips.append(time(NULL));
     }
     verify_lips.append(lips.size() == 0);
-    if (verify_lips.size() > 20) {
+    if (verify_lips.size() > this->FPS) {
         verify_lips.pop_front();
     }
     imshow(face_window_name, faceROI);

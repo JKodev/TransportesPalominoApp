@@ -57,6 +57,8 @@ private:
     GPS *gps;
 
     QString getMediaPath();
+
+    double FPS;
 public:
     System();
     ~System();
