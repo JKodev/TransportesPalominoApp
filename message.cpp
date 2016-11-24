@@ -25,6 +25,13 @@ bool Message::analize()
     return false;
 }
 
+void Message::confirm()
+{
+    QByteArray data = this->response->read(2048);
+
+    qDebug() << data;
+}
+
 Message::Message()
 {
     QString string = "Tuesday, 23 April 12 22:51:41";
@@ -76,6 +83,9 @@ void Message::send_message(QString message, QPair<double, double> ubication)
     QByteArray request_body = doc.toJson();
 
     this->manager->post(request, request_body);
+
+    //connect(this->response, SIGNAL(finished()), this, SLOT(confirm()));
+
     cout << "---------------------------------------------------" << endl;
     cout << "\t SE HA ENVIADO UN MENSAJE AL SUPERVISOR." << endl;
     cout << "---------------------------------------------------" << endl;

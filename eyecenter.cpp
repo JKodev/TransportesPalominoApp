@@ -68,19 +68,17 @@ Point EyeCenter::findEyeCenter(Mat face, Rect eye, std::string debugWindow) {
     Mat eyeROIUnscaled = face(eye);
     Mat eyeROI;
     this->scaleToFastSize(eyeROIUnscaled, eyeROI);
-    // draw eye region
+    // dibujar region del ojo
     rectangle(face,eye,1234);
-    //-- Find the gradient
+    //-- encontrar gradadiente
     Mat gradientX = computeMatXGradient(eyeROI);
     Mat gradientY = computeMatXGradient(eyeROI.t()).t();
-    //-- Normalize and threshold the gradient
-    // compute all the magnitudes
+    //-- Normalizar el gradadiente
+    // calcular todas las magnitudes
     Mat mags = Helpers::matrixMagnitude(gradientX, gradientY);
-    //compute the threshold
+    //calcular el limite
     double gradientThresh = Helpers::computeDynamicThreshold(mags, kGradientThreshold);
-    //double gradientThresh = kGradientThreshold;
-    //double gradientThresh = 0;
-    //normalize
+    //normalizar
     for (int y = 0; y < eyeROI.rows; ++y) {
         double *Xr = gradientX.ptr<double>(y), *Yr = gradientY.ptr<double>(y);
         const double *Mr = mags.ptr<double>(y);
@@ -97,7 +95,7 @@ Point EyeCenter::findEyeCenter(Mat face, Rect eye, std::string debugWindow) {
         }
     }
     imshow(debugWindow,gradientX);
-    //-- Create a blurred and inverted image for weighting
+    //-- Crear una imagen borrosa e invertida para cargar
     Mat weight;
     GaussianBlur( eyeROI, weight, Size( kWeightBlurSize, kWeightBlurSize ), 0, 0 );
     for (int y = 0; y < weight.rows; ++y) {
@@ -106,14 +104,10 @@ Point EyeCenter::findEyeCenter(Mat face, Rect eye, std::string debugWindow) {
             row[x] = (255 - row[x]);
         }
     }
-    //imshow(debugWindow,weight);
-    //-- Run the algorithm!
+
+    //-- Correr el algoritmo
     Mat outSum = Mat::zeros(eyeROI.rows,eyeROI.cols,CV_64F);
-    // for each possible gradient location
-    // Note: these loops are reversed from the way the paper does them
-    // it evaluates every possible center for each gradient location instead of
-    // every possible gradient location for every center.
-    //printf("Tamaño %s: %ix%i\n",debugWindow.c_str(), outSum.cols,outSum.rows);
+    // por cada posible ubicacion de gradadiente
     for (int y = 0; y < weight.rows; ++y) {
         const double *Xr = gradientX.ptr<double>(y), *Yr = gradientY.ptr<double>(y);
         for (int x = 0; x < weight.cols; ++x) {
@@ -124,41 +118,40 @@ Point EyeCenter::findEyeCenter(Mat face, Rect eye, std::string debugWindow) {
             this->testPossibleCentersFormula(x, y, weight, gX, gY, outSum);
         }
     }
-    // scale all the values down, basically averaging them
+
     double numGradients = (weight.rows*weight.cols);
     Mat out;
     outSum.convertTo(out, CV_32F,1.0/numGradients);
-    //imshow(debugWindow,out);
-    //-- Find the maximum point
+
     Point maxP;
     double maxVal;
     minMaxLoc(out, NULL,&maxVal,NULL,&maxP);
-    //-- Flood fill the edges
+
     if(kEnablePostProcess) {
         Mat floodClone;
-        //double floodThresh = computeDynamicThreshold(out, 1.5);
+
         double floodThresh = maxVal * kPostProcessThreshold;
         threshold(out, floodClone, floodThresh, 0.0f, THRESH_TOZERO);
+
         if(kPlotVectorField) {
-            //plotVecField(gradientX, gradientY, floodClone);
             imwrite("eyeFrame.png",eyeROIUnscaled);
         }
+
         Mat mask = this->floodKillEdges(floodClone);
-        //imshow(debugWindow + " Mask",mask);
-        //imshow(debugWindow,out);
-        // redo max
         minMaxLoc(out, NULL,&maxVal,NULL,&maxP,mask);
     }
     return this->unscalePoint(maxP,eye);
 }
 
 
-bool EyeCenter::floodShouldPushPoint(const Point &np, const Mat &mat) {
+bool EyeCenter::floodShouldPushPoint(const Point &np, const Mat &mat)
+{
     return Helpers::inMat(np, mat.rows, mat.cols);
 }
 
-// returns a mask
-Mat EyeCenter::floodKillEdges(Mat &mat) {
+
+Mat EyeCenter::floodKillEdges(Mat &mat)
+{
     rectangle(mat,Rect(0,0,mat.cols,mat.rows),255);
 
     Mat mask(mat.rows, mat.cols, CV_8U, 255);
@@ -170,16 +163,16 @@ Mat EyeCenter::floodKillEdges(Mat &mat) {
         if (mat.at<float>(p) == 0.0f) {
             continue;
         }
-        // add in every direction
-        Point np(p.x + 1, p.y); // right
+
+        Point np(p.x + 1, p.y); // derecha
         if (this->floodShouldPushPoint(np, mat)) toDo.push(np);
-        np.x = p.x - 1; np.y = p.y; // left
+        np.x = p.x - 1; np.y = p.y; // izquierda
         if (this->floodShouldPushPoint(np, mat)) toDo.push(np);
-        np.x = p.x; np.y = p.y + 1; // down
+        np.x = p.x; np.y = p.y + 1; // abajo
         if (this->floodShouldPushPoint(np, mat)) toDo.push(np);
-        np.x = p.x; np.y = p.y - 1; // up
+        np.x = p.x; np.y = p.y - 1; // arriba
         if (this->floodShouldPushPoint(np, mat)) toDo.push(np);
-        // kill it
+        // destruir
         mat.at<float>(p) = 0.0f;
         mask.at<uchar>(p) = 0;
     }

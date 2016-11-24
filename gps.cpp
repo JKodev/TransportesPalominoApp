@@ -5,6 +5,11 @@
 
 GPS::GPS()
 {
+    /**
+     * Creacion de ubicaciones falsas para el GPS
+     *
+     * Todas las ubicaciones son ubicaciones reales en la carretera de Arequipa a Lima
+     */
     this->ubications = new QVector< QPair<double,double> >();
     this->ubications->append(qMakePair(double(-16.417149893474726), double(-71.51327133178711)));
     this->ubications->append(qMakePair(double(-16.3980480890978), double(-71.53678894042969)));
@@ -61,7 +66,12 @@ GPS::GPS()
     this->ubications->append(qMakePair(double(-12.024546215925072), double(-76.91940307617188)));
     this->ubications->append(qMakePair(double(-12.12257889707228), double(-76.81915283203125)));
 }
-
+/**
+ * Obtiene una ubicacion aleatoria
+ *
+ * @brief GPS::getcurubication
+ * @return
+ */
 QPair<double, double> GPS::getcurubication()
 {
     srand(time(NULL));

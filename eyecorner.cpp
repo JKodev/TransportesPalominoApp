@@ -2,23 +2,13 @@
 
 EyeCorner::EyeCorner()
 {
-    /*
-    float tkEyeCornerKernel[4][6] = {
-        {-1,-1,-1, 1, 1, 1},
-        {-1,-1,-1,-1, 1, 1},
-        {-1,-1,-1,-1, 0, 3},
-        { 1, 1, 1, 1, 1, 1},
-    };
-
-    this->kEyeCornerKernel = tkEyeCornerKernel;
-    */
 
 }
 
 void EyeCorner::createCornerKernels() {
     rightCornerKernel = new Mat(4,6,CV_32F,kEyeCornerKernel);
     leftCornerKernel = new Mat(4,6,CV_32F);
-    // flip horizontally
+
     flip(*rightCornerKernel, *leftCornerKernel, 1);
 }
 

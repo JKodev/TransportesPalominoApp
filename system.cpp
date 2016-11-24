@@ -50,19 +50,16 @@ System::System()
     rng = RNG(12345);
 
     skinCrCbHist = Mat::zeros(Size(256, 256), CV_8UC1);
-    //audio_file = "/../media/nautical022.mp3";
+
     QString media_path = this->getMediaPath();
     audio_file = media_path + "008522530_prev.mp3";
 
     eye_center = new EyeCenter();
     eye_corner = new EyeCorner();
+
     player = new QMediaPlayer;
     player->setMedia(QUrl::fromLocalFile(audio_file));
     player->setVolume(50);
-
-    //cout << QString(QCoreApplication::applicationDirPath()).toStdString() << endl;
-    //cout << QString(QCoreApplication::applicationFilePath()).toStdString() << endl;
-    //cout << QString(this->getMediaPath()).toStdString() << endl;
 
 }
 
@@ -76,7 +73,6 @@ int System::init()
 {
     Mat frame;
 
-    // Load the cascades
     if( !face_cascade.load( face_cascade_name ) ){
         printf("--(!)Error loading face cascade, please change face_cascade_name in source code.\n");
         return -1;
@@ -107,11 +103,10 @@ int System::init()
     if( capture.isOpened() ) {
         while( true ) {
             capture.read(frame);
-            // mirror it
+
             flip(frame, frame, 1);
             frame.copyTo(debugImage);
 
-            // Apply the classifier to the frame
             if( !frame.empty() ) {
                 this->detectAndDisplay( frame );
             }
@@ -119,7 +114,7 @@ int System::init()
                 printf(" --(!) No captured frame -- Break!");
                 break;
             }
-            //if (timer_lips.size() > 30 || (timer_left.size() > 12 && timer_right.size() > 12)) {
+
             if (!this->analizer(this->verify_left) || !this->analizer(this->verify_right) || !this->analizer(this->verify_lips)) {
                 player->play();
             } else {
@@ -152,16 +147,16 @@ void System::findEyes(Mat frame_gray, Rect face)
         double sigma = kSmoothFaceFactor * face.width;
         GaussianBlur( faceROI, faceROI, Size( 0, 0 ), sigma);
     }
-    //-- Find eye regions and draw them
+
     int eye_region_width = face.width * (kEyePercentWidth/100.0);
     int eye_region_height = face.width * (kEyePercentHeight/100.0);
     int eye_region_top = face.height * (kEyePercentTop/100.0);
+
     Rect leftEyeRegion(face.width*(kEyePercentSide/100.0),
                            eye_region_top,eye_region_width,eye_region_height);
     Rect rightEyeRegion(face.width - eye_region_width - face.width*(kEyePercentSide/100.0),
                             eye_region_top,eye_region_width,eye_region_height);
 
-    //-- Find Eye Centers
     Point leftPupil = eye_center->findEyeCenter(faceROI,leftEyeRegion,"Ojo izquierdo");
 
     int min_eye_position = eye_region_height / 4;
@@ -186,12 +181,14 @@ void System::findEyes(Mat frame_gray, Rect face)
         }
     }
     verify_left.append(leftPupil.y < min_eye_position);
+
     if (verify_left.size() > this->FPS) {
         verify_left.pop_front();
     }
-    //cout << leftPupil.x << " - " << leftPupil.y << endl;
+
     Point rightPupil = eye_center->findEyeCenter(faceROI,rightEyeRegion,"Ojo Derecho");
     if (rightPupil.y < min_eye_position) {
+
         cout << Helpers::currentDateTime() << endl;
         cout << "ERROR: No se ha encontrado la cornea derecha.\t";
         cout << "X: " << rightPupil.x << " - Y: " << rightPupil.y << endl;
@@ -199,13 +196,17 @@ void System::findEyes(Mat frame_gray, Rect face)
 
         alerts << QString(QString::fromStdString(Helpers::currentDateTime()) + " - Cornera Derecha no encontrada.");
         timer_right.append(time(NULL));
+
     } else {
+
         if (!alerts.isEmpty())
             alerts.pop_front();
+
         if (!timer_right.isEmpty()) {
             time_t tp = time(NULL);
             time_t t = timer_right.last();
             cout << "Diferencia Derecha: " << tp - t << endl;
+
             if ((tp - t) > 10) {
                 timer_right.pop_back();
             }
@@ -215,52 +216,60 @@ void System::findEyes(Mat frame_gray, Rect face)
     if (verify_right.size() > this->FPS) {
         verify_right.pop_front();
     }
-    // get corner regions
+
     Rect leftRightCornerRegion(leftEyeRegion);
     leftRightCornerRegion.width -= leftPupil.x;
     leftRightCornerRegion.x += leftPupil.x;
     leftRightCornerRegion.height /= 2;
     leftRightCornerRegion.y += leftRightCornerRegion.height / 2;
+
     Rect leftLeftCornerRegion(leftEyeRegion);
     leftLeftCornerRegion.width = leftPupil.x;
     leftLeftCornerRegion.height /= 2;
     leftLeftCornerRegion.y += leftLeftCornerRegion.height / 2;
+
     Rect rightLeftCornerRegion(rightEyeRegion);
     rightLeftCornerRegion.width = rightPupil.x;
     rightLeftCornerRegion.height /= 2;
     rightLeftCornerRegion.y += rightLeftCornerRegion.height / 2;
+
     Rect rightRightCornerRegion(rightEyeRegion);
     rightRightCornerRegion.width -= rightPupil.x;
     rightRightCornerRegion.x += rightPupil.x;
     rightRightCornerRegion.height /= 2;
     rightRightCornerRegion.y += rightRightCornerRegion.height / 2;
+
     rectangle(debugFace,leftRightCornerRegion,200);
     rectangle(debugFace,leftLeftCornerRegion,200);
     rectangle(debugFace,rightLeftCornerRegion,200);
     rectangle(debugFace,rightRightCornerRegion,200);
-    // change eye centers to face coordinates
+
     rightPupil.x += rightEyeRegion.x;
     rightPupil.y += rightEyeRegion.y;
     leftPupil.x += leftEyeRegion.x;
     leftPupil.y += leftEyeRegion.y;
-    // draw eye centers
+
     circle(debugFace, rightPupil, 3, 1234);
     circle(debugFace, leftPupil, 3, 1234);
 
-    //-- Find Eye Corners
     if (kEnableEyeCorner) {
+
         Point2f leftRightCorner = eye_corner->findEyeCorner(faceROI(leftRightCornerRegion), true, false);
         leftRightCorner.x += leftRightCornerRegion.x;
         leftRightCorner.y += leftRightCornerRegion.y;
+
         Point2f leftLeftCorner = eye_corner->findEyeCorner(faceROI(leftLeftCornerRegion), true, true);
         leftLeftCorner.x += leftLeftCornerRegion.x;
         leftLeftCorner.y += leftLeftCornerRegion.y;
+
         Point2f rightLeftCorner = eye_corner->findEyeCorner(faceROI(rightLeftCornerRegion), false, true);
         rightLeftCorner.x += rightLeftCornerRegion.x;
         rightLeftCorner.y += rightLeftCornerRegion.y;
+
         Point2f rightRightCorner = eye_corner->findEyeCorner(faceROI(rightRightCornerRegion), false, false);
         rightRightCorner.x += rightRightCornerRegion.x;
         rightRightCorner.y += rightRightCornerRegion.y;
+
         circle(faceROI, leftRightCorner, 3, 200);
         circle(faceROI, leftLeftCorner, 3, 200);
         circle(faceROI, rightLeftCorner, 3, 200);
@@ -276,60 +285,64 @@ void System::findEyes(Mat frame_gray, Rect face)
 
     lips_cascade.detectMultiScale( middle_face_bottom, lips, 1.1, 2, 0|CV_HAAR_SCALE_IMAGE, Size(30, 30));
     if (lips.size() > 0) {
+
         if (!alerts.isEmpty())
             alerts.pop_front();
+
         if (!timer_lips.isEmpty()) {
             time_t tp = time(NULL);
             time_t t = timer_lips.last();
             cout << "Diferencia: " << tp - t << endl;
+
             if ((tp - t) > 10) {
                 timer_lips.pop_back();
             }
         }
-        //for (size_t j=0; j < 1; j++) {
+
         int j=0;
+
         Point start(face.x + lips[j].x, face.y + lips[j].y + middle_face_bottom.rows + tmp*2);
         Point end(face.x + lips[j].x + lips[j].width, face.y + lips[j].y + lips[j].height + middle_face_bottom.rows + tmp*2);
+
         rectangle(faceROI, start, end, CV_RGB(0,0,255), 1);
 
         Point start_bw(lips[j].x, lips[j].y);
         Point end_bw(lips[j].x + lips[j].width, lips[j].y + lips[j].height);
+
         rectangle(middle_face_bottom, start_bw, end_bw, CV_RGB(0,0,255), 1);
-        //}
+
     } else {
         cout << Helpers::currentDateTime() << endl;
         cout << "ERROR: Boca no encontrada." << endl;
+
         alerts << QString(QString::fromStdString(Helpers::currentDateTime()) + " Boca no encontrada");
         timer_lips.append(time(NULL));
     }
+
     verify_lips.append(lips.size() == 0);
+
     if (verify_lips.size() > this->FPS) {
         verify_lips.pop_front();
     }
+
     imshow(face_window_name, faceROI);
 }
 
 void System::detectAndDisplay(Mat frame)
 {
     vector<Rect> faces;
-    //Mat frame_gray;
 
     vector<Mat> rgbChannels(3);
     split(frame, rgbChannels);
+
     Mat frame_gray = rgbChannels[2];
-
-    //-- Detect faces
     face_cascade.detectMultiScale( frame_gray, faces, 1.1, 2, 0|CV_HAAR_SCALE_IMAGE|CV_HAAR_FIND_BIGGEST_OBJECT, Size(150, 150) );
-    //  findSkin(debugImage);
 
-    for( int i = 0; i < faces.size(); i++ )
-    {
+    for( int i = 0; i < faces.size(); i++ ) {
         rectangle(debugImage, faces[i], 1234);
     }
-    //-- Show what you got
+
     if (faces.size() > 0) {
         findEyes(frame_gray, faces[0]);
-        //findLips(frame_gray, faces[0]);
     }
-
 }
